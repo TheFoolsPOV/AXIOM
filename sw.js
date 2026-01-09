@@ -1,4 +1,3 @@
-
 const CACHE_NAME = 'axiom-pro-v2';
 const ASSETS_TO_CACHE = [
   './',
@@ -11,7 +10,6 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Use addAll with relative paths to be environment-agnostic
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -29,10 +27,9 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Skip caching for API calls and non-GET requests
   const url = event.request.url;
-  if (url.includes('generativelanguage.googleapis.com') || 
-      url.includes('localhost') || 
+  // Bypassing cache for localhost/dev testing and any non-GET requests
+  if (url.includes('localhost') || 
       url.includes('127.0.0.1') ||
       event.request.method !== 'GET') {
     return;
@@ -40,9 +37,7 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // Stale-while-revalidate strategy
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // Only cache successful GET responses
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -51,7 +46,6 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Fallback to cache if network fails
         return cachedResponse;
       });
       

@@ -9,7 +9,6 @@ import ResponseViewer from './components/ResponseViewer';
 import BulkTransmit from './components/BulkTransmit';
 import CurlImporter from './components/CurlImporter';
 import ErrorDiagnosis from './components/ErrorDiagnosis';
-import * as gemini from './services/geminiService';
 
 const App: React.FC = () => {
   const [method, setMethod] = useState<HttpMethod>('GET');
@@ -29,11 +28,6 @@ const App: React.FC = () => {
   const [responseMode, setResponseMode] = useState<'visual' | 'raw'>('visual');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
-  // Tools state
-  const [toolView, setToolView] = useState<'insights' | 'docs' | 'snippets' | 'optimize'>('insights');
-  const [toolOutput, setToolOutput] = useState('');
-  const [isToolLoading, setIsToolLoading] = useState(false);
-
   const [showBulk, setShowBulk] = useState(false);
   const [showCurlImport, setShowCurlImport] = useState(false);
   const [variables, setVariables] = useState<{key: string, value: string}[]>([]);
@@ -134,35 +128,6 @@ const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const runTool = async (type: typeof toolView) => {
-    if (!isOnline) {
-      alert("AI Diagnostics require an active internet connection.");
-      return;
-    }
-    setToolView(type);
-    setIsToolLoading(true);
-    setToolOutput('');
-    setActiveTab('tools');
-    try {
-      let result = '';
-      if (type === 'insights') {
-        if (!response) throw new Error("Execute a request first to analyze response.");
-        result = await gemini.analyzeApiInsights(url, method, response.data);
-      } else if (type === 'docs') {
-        result = await gemini.generateDocumentation(method, url, headers, body, response?.data);
-      } else if (type === 'snippets') {
-        result = await gemini.generateSnippets(method, url, headers, body);
-      } else if (type === 'optimize') {
-        result = await gemini.optimizePayload(body);
-      }
-      setToolOutput(result);
-    } catch (e: any) {
-      setToolOutput(`Error: ${e.message}`);
-    } finally {
-      setIsToolLoading(false);
-    }
-  };
-
   const handleSend = async () => {
     setLoading(true);
     setError(null);
@@ -245,7 +210,7 @@ const App: React.FC = () => {
 
         <div className="flex px-4 mb-2 justify-between items-center">
           <div className="flex">
-            {(['request', 'response', 'tools'] as ActiveTab[]).map(tab => (
+            {(['request', 'response'] as ActiveTab[]).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={`tab-btn transition-all duration-300 ${activeTab === tab ? 'active' : ''}`} style={{ '--accent-primary': methodConfig.hex } as any}>
                 {tab}
               </button>
@@ -326,55 +291,6 @@ const App: React.FC = () => {
                     {response && Object.entries(response.headers).map(([k,v]) => <div key={k} className="border-b border-white/[0.04] pb-2 last:border-0"><div className="text-[7px] text-slate-600 font-bold uppercase mb-0.5">{k}</div><div className="text-[10px] text-slate-400 font-mono break-all">{v}</div></div>)}
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'tools' && (
-            <div className="h-full flex gap-6 p-2 overflow-hidden animate-reveal">
-              <div className="w-64 flex flex-col gap-3 shrink-0">
-                <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-2 mb-2">Axiom Intelligence</h3>
-                <button onClick={() => runTool('insights')} className={`text-left p-4 rounded-xl border transition-all ${toolView === 'insights' ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.05)]' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05]'}`}>
-                  <div className={`text-[11px] font-black uppercase mb-1 ${toolView === 'insights' ? 'text-emerald-400' : 'text-slate-300'}`}>Response Insights</div>
-                  <div className="text-[9px] text-slate-500 leading-tight">AI Analysis of the last transmission.</div>
-                </button>
-                <button onClick={() => runTool('docs')} className={`text-left p-4 rounded-xl border transition-all ${toolView === 'docs' ? 'bg-blue-400/10 border-blue-400/30 shadow-[0_0_20px_rgba(96,165,250,0.05)]' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05]'}`}>
-                  <div className={`text-[11px] font-black uppercase mb-1 ${toolView === 'docs' ? 'text-blue-300' : 'text-slate-300'}`}>Doc Generator</div>
-                  <div className="text-[9px] text-slate-500 leading-tight">Create technical docs for this endpoint.</div>
-                </button>
-                <button onClick={() => runTool('snippets')} className={`text-left p-4 rounded-xl border transition-all ${toolView === 'snippets' ? 'bg-purple-500/10 border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.05)]' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05]'}`}>
-                  <div className={`text-[11px] font-black uppercase mb-1 ${toolView === 'snippets' ? 'text-purple-400' : 'text-slate-300'}`}>Snippet Factory</div>
-                  <div className="text-[9px] text-slate-500 leading-tight">cURL, JS Fetch, and C# client code.</div>
-                </button>
-                <button onClick={() => runTool('optimize')} className={`text-left p-4 rounded-xl border transition-all ${toolView === 'optimize' ? 'bg-amber-500/10 border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.05)]' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05]'}`}>
-                  <div className={`text-[11px] font-black uppercase mb-1 ${toolView === 'optimize' ? 'text-amber-400' : 'text-slate-300'}`}>Payload Optimizer</div>
-                  <div className="text-[9px] text-slate-500 leading-tight">AI advice on restructuring payloads.</div>
-                </button>
-              </div>
-              <div className="flex-1 flex flex-col overflow-hidden glass-card border-t border-white/5 p-8 bg-black/20 relative">
-                {isToolLoading ? (
-                  <div className="flex-1 flex flex-col items-center justify-center opacity-40">
-                    <div className="w-10 h-10 border-4 border-white/10 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-                    <p className="text-[10px] font-black uppercase tracking-widest">Consulting Axiom AI...</p>
-                  </div>
-                ) : toolOutput ? (
-                  <div className="flex-1 overflow-hidden animate-reveal flex flex-col">
-                    <div className="flex-1 overflow-hidden">
-                      <Editor value={toolOutput} readOnly language="markdown" />
-                    </div>
-                    <button 
-                      onClick={() => navigator.clipboard.writeText(toolOutput)}
-                      className="mt-4 self-end text-[9px] font-black uppercase text-slate-500 hover:text-white px-4 py-2 bg-white/5 rounded-lg border border-white/5 transition-all"
-                    >
-                      Copy to Clipboard
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-800 opacity-20">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                    <p className="text-[10px] font-black uppercase mt-4 tracking-[0.3em]">Select a Diagnostic Tool</p>
-                  </div>
-                )}
               </div>
             </div>
           )}
