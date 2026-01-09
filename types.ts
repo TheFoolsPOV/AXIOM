@@ -35,4 +35,4 @@ export interface HistoryItem {
   timestamp: number;
 }
 
-export type ActiveTab = 'request' | 'response';
+export type ActiveTab = 'request' | 'response' | 'debug';

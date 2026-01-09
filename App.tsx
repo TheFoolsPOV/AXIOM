@@ -9,15 +9,16 @@ import ResponseViewer from './components/ResponseViewer';
 import BulkTransmit from './components/BulkTransmit';
 import CurlImporter from './components/CurlImporter';
 import ErrorDiagnosis from './components/ErrorDiagnosis';
+import DevAssistant from './components/DevAssistant';
 
 const App: React.FC = () => {
   const [method, setMethod] = useState<HttpMethod>('GET');
-  const [url, setUrl] = useState('https://jsonplaceholder.typicode.com/todos/1');
+  const [url, setUrl] = useState('http://localhost:5000/api/values');
   const [headers, setHeaders] = useState<KeyValuePair[]>([
     { id: '1', key: 'Accept', value: 'application/json', enabled: true },
     { id: '2', key: 'Content-Type', value: 'application/json', enabled: true }
   ]);
-  const [body, setBody] = useState('{\n  "title": "Axiom Request",\n  "completed": false\n}');
+  const [body, setBody] = useState('{\n  "key": "value"\n}');
   const [builderFields, setBuilderFields] = useState<KeyValuePair[]>([]);
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,17 @@ const App: React.FC = () => {
   const [showBulk, setShowBulk] = useState(false);
   const [showCurlImport, setShowCurlImport] = useState(false);
   const [variables, setVariables] = useState<{key: string, value: string}[]>([]);
+
+  // Only show the Debug tab for localhost URLs
+  const isLocalhost = useMemo(() => {
+    const lowerUrl = url.toLowerCase();
+    return lowerUrl.includes('localhost') || lowerUrl.includes('127.0.0.1');
+  }, [url]);
+
+  const localPort = useMemo(() => {
+    const match = url.match(/:([0-9]+)/);
+    return match ? match[1] : '80/443';
+  }, [url]);
 
   const methodConfig = useMemo(() => ({
     GET: { hex: '#10b981', text: 'text-emerald-400', shadow: 'shadow-emerald-500/10', label: 'Fetch' },
@@ -66,22 +78,6 @@ const App: React.FC = () => {
     }
   }, [history]);
 
-  // Sync Architect -> Raw Body
-  useEffect(() => {
-    if (bodyMode === 'builder' && builderFields.length > 0) {
-      const obj: any = {};
-      builderFields.forEach(f => {
-        if (!f.key) return;
-        let val: any = f.value;
-        if (f.type === 'number') val = Number(f.value);
-        if (f.type === 'boolean') val = f.value === 'true';
-        if (f.type === 'null') val = null;
-        obj[f.key] = val;
-      });
-      setBody(JSON.stringify(obj, null, 2));
-    }
-  }, [builderFields, bodyMode]);
-
   const injectVars = (str: string) => {
     let result = str;
     variables.forEach(v => {
@@ -91,41 +87,6 @@ const App: React.FC = () => {
       }
     });
     return result;
-  };
-
-  const hydrateArchitectFromResponse = () => {
-    if (!response || !response.data) return;
-    try {
-      let data = response.data;
-      if (Array.isArray(data)) data = data[0] || {};
-      if (typeof data !== 'object' || data === null) data = { value: data };
-      const fields: KeyValuePair[] = Object.entries(data).map(([key, val]) => ({
-        id: crypto.randomUUID(),
-        key,
-        value: val === null ? '' : String(val),
-        enabled: true,
-        type: typeof val === 'number' ? 'number' : typeof val === 'boolean' ? 'boolean' : val === null ? 'null' : 'string'
-      }));
-      setBuilderFields(fields);
-      setBodyMode('builder');
-      setActiveTab('request');
-      if (method === 'GET') setMethod('POST');
-    } catch (e) { console.error(e); }
-  };
-
-  const exportWorkbench = () => {
-    const data = {
-      history,
-      variables,
-      exportedAt: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `axiom-workbench-export-${new Date().getTime()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const handleSend = async () => {
@@ -155,9 +116,24 @@ const App: React.FC = () => {
       const newItem: HistoryItem = { id: crypto.randomUUID(), request: { id: crypto.randomUUID(), name: `Req ${new Date().toLocaleTimeString()}`, method, url, headers, body, createdAt: Date.now() }, response: result, timestamp: Date.now() };
       setHistory(prev => [newItem, ...prev].slice(0, 50));
       if (!res.ok) setError(`Status ${res.status}: ${res.statusText}`);
-    } catch (err: any) { setError(err.message || 'Transmission failed.'); }
+    } catch (err: any) { 
+      setError(err.message || 'Transmission failed.'); 
+      setActiveTab('response');
+    }
     finally { setLoading(false); }
   };
+
+  useEffect(() => {
+    if (activeTab === 'debug' && !isLocalhost) {
+      setActiveTab('request');
+    }
+  }, [isLocalhost, activeTab]);
+
+  const tabs = useMemo(() => {
+    const list: ActiveTab[] = ['request', 'response'];
+    if (isLocalhost) list.push('debug');
+    return list;
+  }, [isLocalhost]);
 
   return (
     <div className="flex h-screen overflow-hidden p-6 gap-6 bg-[#06080c]">
@@ -174,9 +150,6 @@ const App: React.FC = () => {
                 <p className="text-[7px] text-slate-600 font-bold uppercase tracking-[0.2em]">{isOnline ? 'Network Online' : 'Offline Mode'}</p>
               </div>
             </div>
-            <button onClick={exportWorkbench} title="Download Workbench JSON" className="p-2 bg-white/5 rounded-lg text-slate-500 hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            </button>
           </div>
           <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2 custom-scrollbar">
             {history.map((item) => (
@@ -186,7 +159,6 @@ const App: React.FC = () => {
                   <span className={item.response && item.response.status < 400 ? 'text-emerald-500/60' : 'text-rose-500/60'}>{item.response?.status || 'ERR'}</span>
                 </div>
                 <div className="text-[10px] text-slate-400 truncate font-medium relative z-10">{item.request.url}</div>
-                <div className="absolute inset-0 bg-white/[0.01] opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
             ))}
           </div>
@@ -202,36 +174,38 @@ const App: React.FC = () => {
             {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => <option key={m} value={m} className="bg-slate-900 text-white">{m}</option>)}
           </select>
           <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} className="h-11 px-4 flex-1 text-[13px] font-medium text-slate-200 bg-white/[0.02] outline-none rounded-lg focus:bg-white/[0.05] transition-all" placeholder="http://api..." />
-          <button onClick={() => setShowCurlImport(true)} className="h-11 px-4 text-[9px] font-black uppercase text-slate-500 hover:text-white bg-white/5 rounded-lg border border-white/5 transition-all">Import</button>
           <button onClick={handleSend} disabled={loading} className="h-11 px-10 active:scale-95 disabled:opacity-50 text-[10px] font-black uppercase tracking-widest text-white rounded-lg transition-all shadow-2xl min-w-[140px]" style={{ backgroundColor: methodConfig.hex }}>
             {loading ? "..." : methodConfig.label}
           </button>
         </div>
 
         <div className="flex px-4 mb-2 justify-between items-center">
-          <div className="flex">
-            {(['request', 'response'] as ActiveTab[]).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`tab-btn transition-all duration-300 ${activeTab === tab ? 'active' : ''}`} style={{ '--accent-primary': methodConfig.hex } as any}>
-                {tab}
+          <div className="flex gap-2">
+            {tabs.map(tab => (
+              <button 
+                key={tab} 
+                onClick={() => setActiveTab(tab)} 
+                className={`tab-btn transition-all duration-300 ${activeTab === tab ? 'active' : ''}`} 
+                style={{ '--accent-primary': tab === 'debug' ? '#a855f7' : methodConfig.hex } as any}
+              >
+                {tab === 'debug' ? (
+                   <span className="flex items-center gap-2 text-purple-400">
+                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_#a855f7]"></span>
+                     C# Helper
+                   </span>
+                ) : tab}
               </button>
             ))}
-          </div>
-          <div className="flex gap-4">
-            {url.includes('localhost') && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/5 border border-amber-500/10 rounded-full">
-                <span className="w-1 h-1 bg-amber-500 rounded-full"></span>
-                <span className="text-[8px] font-black uppercase text-amber-500/60">Local Testing (Check CORS)</span>
-              </div>
-            )}
-            {activeTab === 'request' && <button onClick={() => setShowBulk(true)} className="text-[9px] font-black text-slate-600 hover:text-emerald-400 uppercase tracking-widest px-4 py-1 rounded-lg transition-all">Bulk Mode</button>}
           </div>
         </div>
 
         <div className="flex-1 overflow-hidden relative">
           {activeTab === 'request' && (
-            <div className="h-full grid grid-cols-1 lg:grid-cols-2 gap-6 p-2">
-              <div className="glass-card p-6 flex flex-col overflow-hidden border-t border-white/5">
-                <HeaderManager headers={headers} setHeaders={setHeaders} accentColor={methodConfig.hex} />
+            <div className="h-full grid grid-cols-1 lg:grid-cols-2 gap-6 p-2 overflow-y-auto custom-scrollbar pb-20">
+              <div className="space-y-6 flex flex-col">
+                <div className="glass-card p-6 flex flex-col overflow-hidden border-t border-white/5 h-fit">
+                  <HeaderManager headers={headers} setHeaders={setHeaders} accentColor={methodConfig.hex} />
+                </div>
               </div>
               <div className="flex flex-col gap-4 overflow-hidden">
                 <div className="flex justify-between items-center px-4">
@@ -243,6 +217,14 @@ const App: React.FC = () => {
                 <div className="flex-1 overflow-hidden">
                   {bodyMode === 'raw' ? <Editor value={body} onChange={setBody} /> : <div className="h-full glass-card p-4 overflow-hidden border-t border-white/5"><JsonBuilder fields={builderFields} setFields={setBuilderFields} accentColor={methodConfig.hex} /></div>}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'debug' && isLocalhost && (
+            <div className="h-full p-2 overflow-y-auto custom-scrollbar">
+              <div className="max-w-4xl mx-auto py-4">
+                <DevAssistant port={localPort} accentColor={methodConfig.hex} />
               </div>
             </div>
           )}
@@ -270,14 +252,6 @@ const App: React.FC = () => {
                       <button onClick={() => setResponseMode('visual')} className={`px-3 py-1 rounded text-[8px] font-bold uppercase ${responseMode === 'visual' ? 'bg-white/10' : 'text-slate-600'}`}>Visual</button>
                       <button onClick={() => setResponseMode('raw')} className={`px-3 py-1 rounded text-[8px] font-bold uppercase ${responseMode === 'raw' ? 'bg-white/10' : 'text-slate-600'}`}>Raw</button>
                     </div>
-                    {response && (
-                      <button 
-                        onClick={hydrateArchitectFromResponse} 
-                        className="text-[9px] font-black uppercase text-blue-400 hover:text-blue-300 transition-colors px-3 py-1 border border-blue-500/10 hover:border-blue-500/30 rounded-lg bg-blue-500/5 shadow-lg shadow-blue-500/5"
-                      >
-                        Populate Architect
-                      </button>
-                    )}
                   </div>
                   <div className="flex-1 overflow-hidden">
                     {error && !response ? <ErrorDiagnosis error={error} method={method} url={url} headers={headers} body={body} accentColor={methodConfig.hex} responseData={response?.data} /> : (
