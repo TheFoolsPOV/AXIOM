@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { ApiRequest, ApiResponse, HttpMethod, KeyValuePair, HistoryItem, ActiveTab } from './types';
 import HeaderManager from './components/HeaderManager';
@@ -33,7 +32,6 @@ const App: React.FC = () => {
   const [showCurlImport, setShowCurlImport] = useState(false);
   const [variables, setVariables] = useState<{key: string, value: string}[]>([]);
 
-  // Only show the Debug tab for localhost URLs
   const isLocalhost = useMemo(() => {
     const lowerUrl = url.toLowerCase();
     return lowerUrl.includes('localhost') || lowerUrl.includes('127.0.0.1');
@@ -121,6 +119,39 @@ const App: React.FC = () => {
       setActiveTab('response');
     }
     finally { setLoading(false); }
+  };
+
+  const hydrateArchitect = (data: any) => {
+    if (!data) return;
+    const template = Array.isArray(data) ? data[0] : data;
+    if (typeof template !== 'object' || template === null) return;
+    
+    const newFields: KeyValuePair[] = Object.entries(template).map(([key, value]) => {
+      let type: 'string' | 'number' | 'boolean' | 'null' = 'string';
+      if (value === null) type = 'null';
+      else if (typeof value === 'number') type = 'number';
+      else if (typeof value === 'boolean') type = 'boolean';
+      
+      return {
+        id: crypto.randomUUID(),
+        key,
+        value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+        enabled: true,
+        type
+      };
+    });
+
+    setBuilderFields(newFields);
+    setBodyMode('builder');
+    // Hydrating implies we are preparing a request, so switch to POST as standard for complex payloads
+    setMethod('POST');
+    setActiveTab('request');
+  };
+
+  const handleArchitectInteraction = () => {
+    if (method === 'GET' || method === 'DELETE') {
+      setMethod('POST');
+    }
   };
 
   useEffect(() => {
@@ -215,7 +246,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  {bodyMode === 'raw' ? <Editor value={body} onChange={setBody} /> : <div className="h-full glass-card p-4 overflow-hidden border-t border-white/5"><JsonBuilder fields={builderFields} setFields={setBuilderFields} accentColor={methodConfig.hex} /></div>}
+                  {bodyMode === 'raw' ? <Editor value={body} onChange={setBody} /> : <div className="h-full glass-card p-4 overflow-hidden border-t border-white/5"><JsonBuilder fields={builderFields} setFields={setBuilderFields} accentColor={methodConfig.hex} onInteraction={handleArchitectInteraction} /></div>}
                 </div>
               </div>
             </div>
@@ -248,9 +279,21 @@ const App: React.FC = () => {
               <div className="flex-1 min-h-0 flex gap-4 overflow-hidden">
                 <div className="flex-[2] flex flex-col gap-2 overflow-hidden">
                   <div className="flex justify-between items-center">
-                    <div className="flex bg-white/5 p-1 rounded-md self-start">
-                      <button onClick={() => setResponseMode('visual')} className={`px-3 py-1 rounded text-[8px] font-bold uppercase ${responseMode === 'visual' ? 'bg-white/10' : 'text-slate-600'}`}>Visual</button>
-                      <button onClick={() => setResponseMode('raw')} className={`px-3 py-1 rounded text-[8px] font-bold uppercase ${responseMode === 'raw' ? 'bg-white/10' : 'text-slate-600'}`}>Raw</button>
+                    <div className="flex bg-white/5 p-1 rounded-md self-start items-center gap-2">
+                      <button onClick={() => setResponseMode('visual')} className={`px-3 py-1.5 rounded text-[8px] font-bold uppercase ${responseMode === 'visual' ? 'bg-white/10 text-white' : 'text-slate-600'}`}>Visual</button>
+                      <button onClick={() => setResponseMode('raw')} className={`px-3 py-1.5 rounded text-[8px] font-bold uppercase ${responseMode === 'raw' ? 'bg-white/10 text-white' : 'text-slate-600'}`}>Raw</button>
+                      {response?.data && (
+                        <>
+                          <div className="w-px h-3 bg-white/10 mx-1"></div>
+                          <button 
+                            onClick={() => hydrateArchitect(response.data)}
+                            className="px-3 py-1.5 rounded text-[8px] font-black uppercase text-emerald-400 hover:bg-emerald-500/10 transition-all flex items-center gap-1.5"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                            Hydrate Architect
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="flex-1 overflow-hidden">
