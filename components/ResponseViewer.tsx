@@ -24,7 +24,6 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ data, accentColor, sear
   const ObjectRecord: React.FC<{ obj: any, index?: number }> = ({ obj, index }) => {
     const entries = Object.entries(obj);
     
-    // Check if this record matches the search
     const hasMatch = entries.some(([k, v]) => 
       k.toLowerCase().includes(normalizedSearch) || 
       String(v).toLowerCase().includes(normalizedSearch)
@@ -34,12 +33,12 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ data, accentColor, sear
 
     return (
       <div className="glass-card bg-white/[0.01] border border-white/[0.04] rounded-2xl overflow-hidden mb-6 group hover:border-white/10 transition-all animate-reveal">
-        {index !== undefined && (
-          <div className="bg-white/[0.02] px-6 py-2 border-b border-white/[0.04] flex justify-between items-center">
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Record #{index + 1}</span>
-            <span className="text-[7px] font-mono text-slate-800 uppercase px-1.5 py-0.5 rounded bg-white/5">Object</span>
-          </div>
-        )}
+        <div className="bg-white/[0.02] px-6 py-2 border-b border-white/[0.04] flex justify-between items-center">
+          <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
+            {index !== undefined ? `Record #${index + 1}` : 'Object Data'}
+          </span>
+          <span className="text-[7px] font-mono text-slate-800 uppercase px-1.5 py-0.5 rounded bg-white/5">Object</span>
+        </div>
         <div className="divide-y divide-white/[0.03]">
           {entries.map(([key, value]) => {
             const keyMatch = normalizedSearch && key.toLowerCase().includes(normalizedSearch);
@@ -65,7 +64,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ data, accentColor, sear
                         {value.length === 0 && <span className="text-slate-800 italic">[ Empty Array ]</span>}
                       </div>
                     ) : (
-                      <pre className="text-[10px] text-slate-400 bg-black/20 p-2 rounded-lg">
+                      <pre className="text-[10px] text-slate-400 bg-black/20 p-2 rounded-lg custom-scrollbar max-h-40 overflow-auto">
                         {JSON.stringify(value, null, 2)}
                       </pre>
                     )
@@ -103,23 +102,40 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ data, accentColor, sear
               {normalizedSearch ? "No items matching filter" : "Empty Collection"}
             </div>
           )}
+          <div className="py-10 border-t border-white/[0.05] flex flex-col items-center gap-3 opacity-10">
+              <div className="w-10 h-10 rounded-full border border-dashed border-white/20 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              </div>
+              <span className="text-[8px] font-black uppercase tracking-[0.3em]">Hydrate from this body</span>
+          </div>
         </div>
       );
     }
 
     if (typeof data === 'object') {
-      return <ObjectRecord obj={data} />;
+      return (
+        <div className="space-y-6">
+          <ObjectRecord obj={data} />
+          <div className="py-10 border-t border-white/[0.05] flex flex-col items-center gap-3 opacity-10">
+              <div className="w-10 h-10 rounded-full border border-dashed border-white/20 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              </div>
+              <span className="text-[8px] font-black uppercase tracking-[0.3em]">Map payload to architect</span>
+          </div>
+        </div>
+      );
     }
 
     return (
-      <div className="glass-card p-8 text-center bg-white/[0.01]">
-        <div className="text-2xl font-mono">{renderSimpleValue(data)}</div>
+      <div className="glass-card p-12 text-center bg-white/[0.01] rounded-3xl border border-white/5">
+        <div className="text-3xl font-mono tracking-tighter text-white mb-2">{renderSimpleValue(data)}</div>
+        <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Single Value Response</p>
       </div>
     );
   };
 
   return (
-    <div className="h-full overflow-y-auto pr-2 custom-scrollbar pb-10 px-1">
+    <div className="h-full overflow-y-auto pr-2 custom-scrollbar pb-20 px-1 relative">
       {renderData()}
     </div>
   );

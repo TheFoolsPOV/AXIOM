@@ -36,3 +36,8 @@ export interface HistoryItem {
 }
 
 export type ActiveTab = 'request' | 'response' | 'debug';
+
+export interface Variable {
+  key: string;
+  value: string;
+}

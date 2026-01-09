@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ApiRequest, ApiResponse, HttpMethod, KeyValuePair, HistoryItem, ActiveTab } from './types';
+import { ApiRequest, ApiResponse, HttpMethod, KeyValuePair, HistoryItem, ActiveTab, Variable } from './types';
 import HeaderManager from './components/HeaderManager';
 import Editor from './components/Editor';
 import JsonBuilder from './components/JsonBuilder';
@@ -12,7 +12,7 @@ import DevAssistant from './components/DevAssistant';
 
 const App: React.FC = () => {
   const [method, setMethod] = useState<HttpMethod>('GET');
-  const [url, setUrl] = useState('http://localhost:5000/api/values');
+  const [url, setUrl] = useState('http://localhost:5223/api/Todo');
   const [headers, setHeaders] = useState<KeyValuePair[]>([
     { id: '1', key: 'Accept', value: 'application/json', enabled: true },
     { id: '2', key: 'Content-Type', value: 'application/json', enabled: true }
@@ -30,7 +30,7 @@ const App: React.FC = () => {
   
   const [showBulk, setShowBulk] = useState(false);
   const [showCurlImport, setShowCurlImport] = useState(false);
-  const [variables, setVariables] = useState<{key: string, value: string}[]>([]);
+  const [variables, setVariables] = useState<Variable[]>([]);
 
   const isLocalhost = useMemo(() => {
     const lowerUrl = url.toLowerCase();
@@ -50,16 +50,63 @@ const App: React.FC = () => {
     DELETE: { hex: '#f43f5e', text: 'text-rose-400', shadow: 'shadow-rose-500/10', label: 'Remove' }
   }[method] || { hex: '#3b82f6', text: 'text-blue-400', shadow: 'shadow-blue-500/10', label: 'Transmit' }), [method]);
 
+  // Sync Architect -> Raw
+  useEffect(() => {
+    if (bodyMode === 'builder' && builderFields.length > 0) {
+      const result: Record<string, any> = {};
+      builderFields.forEach(f => {
+        if (!f.key) return;
+        let val: any = f.value;
+        const isVariable = typeof val === 'string' && val.includes('{{') && val.includes('}}');
+        if (!isVariable) {
+          if (f.type === 'number') {
+            const num = Number(f.value);
+            val = isNaN(num) ? f.value : num;
+          } else if (f.type === 'boolean') {
+            val = f.value === 'true';
+          } else if (f.type === 'null') {
+            val = null;
+          }
+        }
+        result[f.key] = val;
+      });
+      setBody(JSON.stringify(result, null, 2));
+    }
+  }, [builderFields, bodyMode]);
+
+  // Sync Raw -> Architect when switching mode
+  useEffect(() => {
+    if (bodyMode === 'builder') {
+      try {
+        const parsed = JSON.parse(body);
+        const newFields: KeyValuePair[] = Object.entries(parsed).map(([key, value]) => {
+          let type: 'string' | 'number' | 'boolean' | 'null' = 'string';
+          if (value === null) type = 'null';
+          else if (typeof value === 'number') type = 'number';
+          else if (typeof value === 'boolean') type = 'boolean';
+          return { 
+            id: crypto.randomUUID(), 
+            key, 
+            value: (typeof value === 'object' && value !== null) ? JSON.stringify(value) : String(value), 
+            enabled: true, 
+            type 
+          };
+        });
+        setBuilderFields(newFields);
+      } catch (e) {
+        // If not valid JSON, we just keep current builder fields or empty
+      }
+    }
+  }, [bodyMode]);
+
   useEffect(() => {
     const handleStatusChange = () => setIsOnline(navigator.onLine);
     window.addEventListener('online', handleStatusChange);
     window.addEventListener('offline', handleStatusChange);
-    
     const saved = localStorage.getItem('axiom_history_v3');
     if (saved) try { setHistory(JSON.parse(saved)); } catch (e) { console.error(e); }
     const savedVars = localStorage.getItem('axiom_variables');
     if (savedVars) try { setVariables(JSON.parse(savedVars)); } catch (e) { console.error(e); }
-
     return () => {
       window.removeEventListener('online', handleStatusChange);
       window.removeEventListener('offline', handleStatusChange);
@@ -122,43 +169,25 @@ const App: React.FC = () => {
   };
 
   const hydrateArchitect = (data: any) => {
-    if (!data) return;
+    if (data === undefined || data === null) return;
     const template = Array.isArray(data) ? data[0] : data;
-    if (typeof template !== 'object' || template === null) return;
-    
-    const newFields: KeyValuePair[] = Object.entries(template).map(([key, value]) => {
-      let type: 'string' | 'number' | 'boolean' | 'null' = 'string';
-      if (value === null) type = 'null';
-      else if (typeof value === 'number') type = 'number';
-      else if (typeof value === 'boolean') type = 'boolean';
-      
-      return {
-        id: crypto.randomUUID(),
-        key,
-        value: typeof value === 'object' ? JSON.stringify(value) : String(value),
-        enabled: true,
-        type
-      };
-    });
-
-    setBuilderFields(newFields);
+    setBody(JSON.stringify(template, null, 2));
+    if (typeof template !== 'object' || template === null) {
+      setBuilderFields([{ id: crypto.randomUUID(), key: 'value', value: String(template), enabled: true, type: typeof template as any }]);
+    } else {
+      const newFields: KeyValuePair[] = Object.entries(template).map(([key, value]) => {
+        let type: 'string' | 'number' | 'boolean' | 'null' = 'string';
+        if (value === null) type = 'null';
+        else if (typeof value === 'number') type = 'number';
+        else if (typeof value === 'boolean') type = 'boolean';
+        return { id: crypto.randomUUID(), key, value: (typeof value === 'object' && value !== null) ? JSON.stringify(value) : String(value), enabled: true, type };
+      });
+      setBuilderFields(newFields);
+    }
     setBodyMode('builder');
-    // Hydrating implies we are preparing a request, so switch to POST as standard for complex payloads
     setMethod('POST');
     setActiveTab('request');
   };
-
-  const handleArchitectInteraction = () => {
-    if (method === 'GET' || method === 'DELETE') {
-      setMethod('POST');
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'debug' && !isLocalhost) {
-      setActiveTab('request');
-    }
-  }, [isLocalhost, activeTab]);
 
   const tabs = useMemo(() => {
     const list: ActiveTab[] = ['request', 'response'];
@@ -195,7 +224,7 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="glass-panel h-[45%] rounded-[var(--radius-main)] p-6 overflow-hidden border-t-2 border-t-slate-800" style={{ borderTopColor: methodConfig.hex }}>
-          <VariableManager variables={variables} setVariables={setVariables} />
+          <VariableManager variables={variables} setVariables={setVariables} url={url} headers={headers} body={body} accentColor={methodConfig.hex} />
         </div>
       </aside>
 
@@ -246,7 +275,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  {bodyMode === 'raw' ? <Editor value={body} onChange={setBody} /> : <div className="h-full glass-card p-4 overflow-hidden border-t border-white/5"><JsonBuilder fields={builderFields} setFields={setBuilderFields} accentColor={methodConfig.hex} onInteraction={handleArchitectInteraction} /></div>}
+                  {bodyMode === 'raw' ? <Editor value={body} onChange={setBody} variables={variables} accentColor={methodConfig.hex} /> : <div className="h-full glass-card p-4 overflow-hidden border-t border-white/5"><JsonBuilder fields={builderFields} setFields={setBuilderFields} variables={variables} accentColor={methodConfig.hex} onInteraction={() => method === 'GET' && setMethod('POST')} /></div>}
                 </div>
               </div>
             </div>
@@ -276,29 +305,26 @@ const App: React.FC = () => {
                   <span className="font-mono text-xl font-bold text-slate-200">{response?.size ? (response.size / 1024).toFixed(2) : '0.00'}KB</span>
                 </div>
               </div>
-              <div className="flex-1 min-h-0 flex gap-4 overflow-hidden">
-                <div className="flex-[2] flex flex-col gap-2 overflow-hidden">
-                  <div className="flex justify-between items-center">
-                    <div className="flex bg-white/5 p-1 rounded-md self-start items-center gap-2">
-                      <button onClick={() => setResponseMode('visual')} className={`px-3 py-1.5 rounded text-[8px] font-bold uppercase ${responseMode === 'visual' ? 'bg-white/10 text-white' : 'text-slate-600'}`}>Visual</button>
-                      <button onClick={() => setResponseMode('raw')} className={`px-3 py-1.5 rounded text-[8px] font-bold uppercase ${responseMode === 'raw' ? 'bg-white/10 text-white' : 'text-slate-600'}`}>Raw</button>
-                      {response?.data && (
-                        <>
-                          <div className="w-px h-3 bg-white/10 mx-1"></div>
-                          <button 
-                            onClick={() => hydrateArchitect(response.data)}
-                            className="px-3 py-1.5 rounded text-[8px] font-black uppercase text-emerald-400 hover:bg-emerald-500/10 transition-all flex items-center gap-1.5"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-                            Hydrate Architect
-                          </button>
-                        </>
-                      )}
+              <div className="flex-1 min-h-0 flex gap-4 overflow-hidden relative">
+                <div className="flex-[2] flex flex-col gap-2 overflow-hidden relative">
+                  <div className="flex justify-between items-center mb-2 px-2">
+                    <div className="flex bg-white/5 p-1 rounded-md self-start items-center gap-1">
+                      <button onClick={() => setResponseMode('visual')} className={`px-4 py-1.5 rounded text-[8px] font-bold uppercase transition-all ${responseMode === 'visual' ? 'bg-white/10 text-white shadow-inner' : 'text-slate-600 hover:text-slate-400'}`}>Visual</button>
+                      <button onClick={() => setResponseMode('raw')} className={`px-4 py-1.5 rounded text-[8px] font-bold uppercase transition-all ${responseMode === 'raw' ? 'bg-white/10 text-white shadow-inner' : 'text-slate-600 hover:text-slate-400'}`}>Raw</button>
                     </div>
+                    {response?.data && (
+                      <button 
+                        onClick={() => hydrateArchitect(response.data)}
+                        className="px-5 py-2.5 bg-[#10b981] hover:bg-emerald-400 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all active:scale-95 flex items-center gap-2 border border-emerald-400/20 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                        Hydrate Architect
+                      </button>
+                    )}
                   </div>
-                  <div className="flex-1 overflow-hidden">
+                  <div className="flex-1 overflow-hidden relative">
                     {error && !response ? <ErrorDiagnosis error={error} method={method} url={url} headers={headers} body={body} accentColor={methodConfig.hex} responseData={response?.data} /> : (
-                      responseMode === 'raw' ? <Editor value={JSON.stringify(response?.data, null, 2)} readOnly /> : <div className="h-full glass-card p-4 overflow-hidden border-t border-white/5"><ResponseViewer data={response?.data} accentColor={methodConfig.hex} /></div>
+                      responseMode === 'raw' ? <Editor value={JSON.stringify(response?.data, null, 2)} readOnly variables={variables} accentColor={methodConfig.hex} /> : <div className="h-full glass-card p-4 overflow-hidden border-t border-white/5"><ResponseViewer data={response?.data} accentColor={methodConfig.hex} /></div>
                     )}
                   </div>
                 </div>
