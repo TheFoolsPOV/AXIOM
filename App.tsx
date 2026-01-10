@@ -32,6 +32,9 @@ const App: React.FC = () => {
   const [showCurlImport, setShowCurlImport] = useState(false);
   const [variables, setVariables] = useState<Variable[]>([]);
 
+  // Global Accent State - synchronized with Engine Modes (Linear/Chaotic)
+  const [globalAccent, setGlobalAccent] = useState('#3b82f6');
+
   const isLocalhost = useMemo(() => {
     const lowerUrl = url.toLowerCase();
     return lowerUrl.includes('localhost') || lowerUrl.includes('127.0.0.1');
@@ -42,13 +45,44 @@ const App: React.FC = () => {
     return match ? match[1] : '80/443';
   }, [url]);
 
-  const methodConfig = useMemo(() => ({
-    GET: { hex: '#10b981', text: 'text-emerald-400', shadow: 'shadow-emerald-500/10', label: 'Fetch' },
-    POST: { hex: '#3b82f6', text: 'text-blue-400', shadow: 'shadow-blue-500/10', label: 'Execute' },
-    PUT: { hex: '#f59e0b', text: 'text-amber-400', shadow: 'shadow-amber-500/10', label: 'Update' },
-    PATCH: { hex: '#06b6d4', text: 'text-cyan-400', shadow: 'shadow-cyan-500/10', label: 'Modify' },
-    DELETE: { hex: '#f43f5e', text: 'text-rose-400', shadow: 'shadow-rose-500/10', label: 'Remove' }
-  }[method] || { hex: '#3b82f6', text: 'text-blue-400', shadow: 'shadow-blue-500/10', label: 'Transmit' }), [method]);
+  // Max ID detection to prevent duplicates in bulk runs
+  const maxDetectedId = useMemo(() => {
+    if (!response || !response.data) return 0;
+    let max = 0;
+    const findIds = (obj: any) => {
+      if (!obj) return;
+      if (Array.isArray(obj)) {
+        obj.forEach(findIds);
+      } else if (typeof obj === 'object') {
+        Object.entries(obj).forEach(([key, val]) => {
+          if (key.toLowerCase().includes('id') && typeof val === 'number') {
+            max = Math.max(max, val);
+          } else if (typeof val === 'object') {
+            findIds(val);
+          }
+        });
+      }
+    };
+    findIds(response.data);
+    return max;
+  }, [response]);
+
+  // Method specific colors (Accents)
+  const methodConfig = useMemo(() => {
+    const configs = {
+      GET: { hex: '#10b981', text: 'text-emerald-400', label: 'Fetch' },
+      POST: { hex: globalAccent, text: 'text-white', label: 'Execute' },
+      PUT: { hex: '#f59e0b', text: 'text-amber-400', label: 'Update' },
+      PATCH: { hex: '#06b6d4', text: 'text-cyan-400', label: 'Modify' },
+      DELETE: { hex: '#f43f5e', text: 'text-rose-400', label: 'Remove' }
+    };
+    return (configs as any)[method] || configs.POST;
+  }, [method, globalAccent]);
+
+  // Sync the CSS variable with the current method's accent color
+  useEffect(() => {
+    document.documentElement.style.setProperty('--accent-primary', methodConfig.hex);
+  }, [methodConfig.hex]);
 
   // Sync Architect -> Raw
   useEffect(() => {
@@ -73,31 +107,6 @@ const App: React.FC = () => {
       setBody(JSON.stringify(result, null, 2));
     }
   }, [builderFields, bodyMode]);
-
-  // Sync Raw -> Architect when switching mode
-  useEffect(() => {
-    if (bodyMode === 'builder') {
-      try {
-        const parsed = JSON.parse(body);
-        const newFields: KeyValuePair[] = Object.entries(parsed).map(([key, value]) => {
-          let type: 'string' | 'number' | 'boolean' | 'null' = 'string';
-          if (value === null) type = 'null';
-          else if (typeof value === 'number') type = 'number';
-          else if (typeof value === 'boolean') type = 'boolean';
-          return { 
-            id: crypto.randomUUID(), 
-            key, 
-            value: (typeof value === 'object' && value !== null) ? JSON.stringify(value) : String(value), 
-            enabled: true, 
-            type 
-          };
-        });
-        setBuilderFields(newFields);
-      } catch (e) {
-        // If not valid JSON, we just keep current builder fields or empty
-      }
-    }
-  }, [bodyMode]);
 
   useEffect(() => {
     const handleStatusChange = () => setIsOnline(navigator.onLine);
@@ -197,11 +206,23 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden p-6 gap-6 bg-[#06080c]">
-      {showBulk && <BulkTransmit url={url} method={method} headers={headers} variables={variables} onClose={() => setShowBulk(false)} onComplete={() => {}} accentColor={methodConfig.hex} />}
+      {showBulk && (
+        <BulkTransmit 
+          url={url} 
+          method={method} 
+          headers={headers} 
+          variables={variables} 
+          builderFields={builderFields} 
+          initialN={maxDetectedId}
+          onClose={() => setShowBulk(false)} 
+          accentColor={methodConfig.hex}
+          onModeChange={setGlobalAccent}
+        />
+      )}
       {showCurlImport && <CurlImporter onImport={(d) => {setMethod(d.method as any); setUrl(d.url); setHeaders(d.headers); setBody(d.body);}} onClose={() => setShowCurlImport(false)} accentColor={methodConfig.hex} />}
 
       <aside className="w-80 flex flex-col shrink-0 gap-6 animate-fade">
-        <div className="glass-panel flex flex-col h-[55%] overflow-hidden rounded-[var(--radius-main)] border-t-2 border-t-slate-800" style={{ borderTopColor: methodConfig.hex }}>
+        <div className="glass-panel flex flex-col h-[55%] overflow-hidden rounded-[var(--radius-main)] border-t-2" style={{ borderTopColor: methodConfig.hex }}>
           <div className="p-6 pb-2 flex justify-between items-center">
             <div>
               <h1 className="text-sm font-black tracking-tighter text-white mb-1">AXIOM PRO</h1>
@@ -223,20 +244,25 @@ const App: React.FC = () => {
             ))}
           </div>
         </div>
-        <div className="glass-panel h-[45%] rounded-[var(--radius-main)] p-6 overflow-hidden border-t-2 border-t-slate-800" style={{ borderTopColor: methodConfig.hex }}>
+        <div className="glass-panel h-[45%] rounded-[var(--radius-main)] p-6 overflow-hidden border-t-2" style={{ borderTopColor: methodConfig.hex }}>
           <VariableManager variables={variables} setVariables={setVariables} url={url} headers={headers} body={body} accentColor={methodConfig.hex} />
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 animate-fade">
-        <div className={`glass-panel p-2 flex items-center gap-2 mb-6 rounded-[var(--radius-main)] transition-all border-l-4 ${methodConfig.shadow}`} style={{ borderLeftColor: methodConfig.hex }}>
+        <div className="glass-panel p-2 flex items-center gap-2 mb-6 rounded-[var(--radius-main)] transition-all border-l-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)]" style={{ borderLeftColor: methodConfig.hex }}>
           <select value={method} onChange={(e) => setMethod(e.target.value as HttpMethod)} className={`bg-white/5 border-none h-11 px-4 text-[11px] font-black tracking-widest cursor-pointer rounded-lg outline-none ${methodConfig.text}`}>
             {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => <option key={m} value={m} className="bg-slate-900 text-white">{m}</option>)}
           </select>
           <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} className="h-11 px-4 flex-1 text-[13px] font-medium text-slate-200 bg-white/[0.02] outline-none rounded-lg focus:bg-white/[0.05] transition-all" placeholder="http://api..." />
-          <button onClick={handleSend} disabled={loading} className="h-11 px-10 active:scale-95 disabled:opacity-50 text-[10px] font-black uppercase tracking-widest text-white rounded-lg transition-all shadow-2xl min-w-[140px]" style={{ backgroundColor: methodConfig.hex }}>
-            {loading ? "..." : methodConfig.label}
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowBulk(true)} title="Batch Transmission Engine" className="h-11 w-11 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-lg transition-all text-slate-400 hover:text-white border border-white/5 active:scale-95 shadow-inner">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            </button>
+            <button onClick={handleSend} disabled={loading} className="h-11 px-10 active:scale-95 disabled:opacity-50 text-[10px] font-black uppercase tracking-widest text-white rounded-lg transition-all shadow-2xl min-w-[140px]" style={{ backgroundColor: methodConfig.hex }}>
+              {loading ? "..." : methodConfig.label}
+            </button>
+          </div>
         </div>
 
         <div className="flex px-4 mb-2 justify-between items-center">
@@ -246,11 +272,10 @@ const App: React.FC = () => {
                 key={tab} 
                 onClick={() => setActiveTab(tab)} 
                 className={`tab-btn transition-all duration-300 ${activeTab === tab ? 'active' : ''}`} 
-                style={{ '--accent-primary': tab === 'debug' ? '#a855f7' : methodConfig.hex } as any}
               >
                 {tab === 'debug' ? (
-                   <span className="flex items-center gap-2 text-purple-400">
-                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_#a855f7]"></span>
+                   <span className="flex items-center gap-2" style={{ color: activeTab === 'debug' ? methodConfig.hex : '#9333ea' }}>
+                     <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${activeTab === 'debug' ? '' : 'bg-purple-500'}`} style={activeTab === 'debug' ? { backgroundColor: methodConfig.hex } : {}}></span>
                      C# Helper
                    </span>
                 ) : tab}
@@ -328,10 +353,26 @@ const App: React.FC = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex-1 glass-card p-6 flex flex-col overflow-hidden border-t border-white/5">
-                  <h3 className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-4">Response Headers</h3>
-                  <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-                    {response && Object.entries(response.headers).map(([k,v]) => <div key={k} className="border-b border-white/[0.04] pb-2 last:border-0"><div className="text-[7px] text-slate-600 font-bold uppercase mb-0.5">{k}</div><div className="text-[10px] text-slate-400 font-mono break-all">{v}</div></div>)}
+                <div className="flex-1 glass-card p-8 flex flex-col overflow-hidden border-t border-white/5 bg-white/[0.01]">
+                  <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-8 border-b border-white/5 pb-3">Response Headers</h3>
+                  <div className="flex-1 overflow-y-auto space-y-5 pr-3 custom-scrollbar">
+                    {response && Object.entries(response.headers).map(([k,v]) => (
+                      <div key={k} className="group relative">
+                        <div className="text-[7px] text-slate-600 font-black uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                           <div className="w-1 h-1 rounded-full bg-white/20"></div>
+                           {k}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono break-all bg-white/[0.02] p-3 rounded-xl border border-transparent group-hover:border-white/10 group-hover:bg-white/[0.04] transition-all shadow-inner">
+                          {v}
+                        </div>
+                      </div>
+                    ))}
+                    {!response && (
+                      <div className="h-full flex flex-col items-center justify-center opacity-20 text-center">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-4"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                         <span className="text-[9px] font-black uppercase tracking-widest">Awaiting Transaction...</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

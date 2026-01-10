@@ -16,7 +16,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ data, accentColor, sear
     if (typeof val === 'number') return <span className="token-number">{val}</span>;
     if (typeof val === 'string') {
       const isMatch = normalizedSearch && val.toLowerCase().includes(normalizedSearch);
-      return <span className={`token-string ${isMatch ? 'bg-yellow-500/20 ring-1 ring-yellow-500/30 rounded' : ''}`}>"{val}"</span>;
+      return <span className={`token-string ${isMatch ? 'bg-yellow-500/20 ring-1 ring-yellow-500/30 rounded px-0.5' : ''}`}>"{val}"</span>;
     }
     return String(val);
   };
@@ -33,11 +33,16 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ data, accentColor, sear
 
     return (
       <div className="glass-card bg-white/[0.01] border border-white/[0.04] rounded-2xl overflow-hidden mb-6 group hover:border-white/10 transition-all animate-reveal">
-        <div className="bg-white/[0.02] px-6 py-2 border-b border-white/[0.04] flex justify-between items-center">
-          <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-            {index !== undefined ? `Record #${index + 1}` : 'Object Data'}
+        <div className="bg-white/[0.02] px-6 py-3 border-b border-white/[0.04] flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accentColor }}></span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              {index !== undefined ? `Record #${index + 1}` : 'Object Data'}
+            </span>
+          </div>
+          <span className="text-[9px] font-black text-white uppercase px-2.5 py-1 rounded-md border shadow-sm tracking-tighter" style={{ backgroundColor: `${accentColor}22`, borderColor: `${accentColor}44`, color: accentColor }}>
+            OBJECT
           </span>
-          <span className="text-[7px] font-mono text-slate-800 uppercase px-1.5 py-0.5 rounded bg-white/5">Object</span>
         </div>
         <div className="divide-y divide-white/[0.03]">
           {entries.map(([key, value]) => {
@@ -52,19 +57,19 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ data, accentColor, sear
                     {Array.isArray(value) ? 'array' : typeof value}
                   </div>
                 </div>
-                <div className="flex-1 text-[12px] leading-relaxed break-all">
+                <div className="flex-1 text-[12px] leading-relaxed break-all font-medium text-slate-300">
                   {typeof value === 'object' && value !== null ? (
                     Array.isArray(value) ? (
                       <div className="flex gap-2 flex-wrap">
                         {value.map((v, i) => (
-                          <div key={i} className="bg-white/5 px-2 py-1 rounded text-[10px]">
+                          <div key={i} className="bg-white/5 px-2 py-1 rounded text-[10px] border border-white/5">
                             {typeof v === 'object' ? '{...}' : renderSimpleValue(v)}
                           </div>
                         ))}
                         {value.length === 0 && <span className="text-slate-800 italic">[ Empty Array ]</span>}
                       </div>
                     ) : (
-                      <pre className="text-[10px] text-slate-400 bg-black/20 p-2 rounded-lg custom-scrollbar max-h-40 overflow-auto">
+                      <pre className="text-[10px] text-slate-400 bg-black/40 p-3 rounded-xl custom-scrollbar max-h-40 overflow-auto border border-white/5">
                         {JSON.stringify(value, null, 2)}
                       </pre>
                     )
@@ -88,7 +93,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ data, accentColor, sear
         typeof item === 'object' && item !== null ? (
           <ObjectRecord key={i} obj={item} index={i} />
         ) : (
-          <div key={i} className="glass-card p-4 bg-white/[0.01] mb-2">
+          <div key={i} className="glass-card p-4 bg-white/[0.01] mb-2 border border-white/[0.04]">
             {renderSimpleValue(item)}
           </div>
         )
@@ -106,7 +111,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ data, accentColor, sear
               <div className="w-10 h-10 rounded-full border border-dashed border-white/20 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
               </div>
-              <span className="text-[8px] font-black uppercase tracking-[0.3em]">Hydrate from this body</span>
+              <span className="text-[8px] font-black uppercase tracking-[0.3em]">End of results</span>
           </div>
         </div>
       );
@@ -116,12 +121,6 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ data, accentColor, sear
       return (
         <div className="space-y-6">
           <ObjectRecord obj={data} />
-          <div className="py-10 border-t border-white/[0.05] flex flex-col items-center gap-3 opacity-10">
-              <div className="w-10 h-10 rounded-full border border-dashed border-white/20 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-              </div>
-              <span className="text-[8px] font-black uppercase tracking-[0.3em]">Map payload to architect</span>
-          </div>
         </div>
       );
     }
