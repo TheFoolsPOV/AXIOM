@@ -40,18 +40,12 @@ const ErrorDiagnosis: React.FC<ErrorDiagnosisProps> = ({
   const isMixedContent = isHttpsHost && url.startsWith('http://');
   const isCORS = error.toLowerCase().includes('fetch') || error.toLowerCase().includes('cors') || error.toLowerCase().includes('failed to fetch');
 
-  const formattedPayload = useMemo(() => {
-    if (parsedData) return JSON.stringify(parsedData, null, 2);
-    if (typeof responseData === 'string') return responseData;
-    return String(responseData || '');
-  }, [parsedData, responseData]);
-
   const likelyCause = useMemo(() => {
-    if (isMixedContent && isLocalhost) return "Mixed Content Block: You are on HTTPS calling an HTTP local API. Chrome blocks this by default.";
+    if (isMixedContent && isLocalhost) return "Mixed Content Block: You are on HTTPS calling an HTTP local API. Browsers block this by default.";
     if (isValidationError) return "Server received the request but the payload failed validation rules.";
     if (isCORS) return "CORS Policy Block: The server is not allowing requests from this origin.";
     if (error.includes("401")) return "Unauthorized: Missing or invalid authentication credentials.";
-    if (error.includes("500")) return "Internal Server Error: The C# code crashed or encountered an exception.";
+    if (error.includes("500")) return "Internal Server Error: The server encountered an exception while processing the request.";
     return "Server rejected connection or is offline.";
   }, [isValidationError, isCORS, error, isMixedContent, isLocalhost]);
 
@@ -66,11 +60,11 @@ const ErrorDiagnosis: React.FC<ErrorDiagnosisProps> = ({
             </div>
             <div>
               <h3 className="text-blue-400 font-black text-[11px] uppercase tracking-tight">Mixed Content Detected</h3>
-              <p className="text-[8px] text-blue-500/60 font-bold uppercase tracking-widest">Local C# API Fix</p>
+              <p className="text-[8px] text-blue-500/60 font-bold uppercase tracking-widest">Local API Connectivity Fix</p>
             </div>
           </div>
           <div className="text-[11px] text-slate-300 space-y-2 leading-relaxed">
-            <p>To test local APIs from a hosted workbench:</p>
+            <p>To test local development APIs from a hosted workbench:</p>
             <ol className="list-decimal list-inside space-y-1 ml-1">
               <li>Click the <strong>Lock Icon</strong> in the address bar.</li>
               <li>Go to <strong>Site Settings</strong>.</li>
@@ -129,7 +123,7 @@ const ErrorDiagnosis: React.FC<ErrorDiagnosisProps> = ({
           </div>
           <div className="bg-white/[0.02] p-2.5 rounded-lg border border-white/5">
             <h4 className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Context</h4>
-            <p className="text-[10px] text-slate-300 font-medium leading-tight">{isLocalhost ? "Local C# Env" : "Remote Host"}</p>
+            <p className="text-[10px] text-slate-300 font-medium leading-tight">{isLocalhost ? "Local Host" : "Remote Target"}</p>
           </div>
         </div>
       </div>

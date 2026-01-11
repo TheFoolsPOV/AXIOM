@@ -1,58 +1,63 @@
-# Axiom Pro | API Workbench
+# Axiom Pro | Universal API Workbench
 
-**Axiom Pro** is a high-performance, browser-based API engineering environment designed for rapid prototyping, schema architecting, and health monitoring.
+**Axiom Pro** is a professional-grade API engineering and development environment built for high-velocity testing, schema architecting, and health monitoring. It bridges the gap between simple request tools and full-scale automated testing suites.
 
-🚀 **Live App:** [https://axiom-api.pages.dev/](https://axiom-api.pages.dev/)
-
----
-
-## ✨ Key Features
-
-- **Mass Transmit Engine**: A professional bulk-transmission hub for stress-testing endpoints with "Linear" or "Chaotic" sequence generation.
-- **Schema Architect**: A visual JSON builder that allows you to construct complex payloads without manual syntax errors.
-- **Real-time Monitoring**: Integrated telemetry dashboard with SVG latency tracking, uptime calculation, and automated background health checks.
-- **PWA & Offline Ready**: Full service-worker support allows for engineering work even without an active internet connection.
-- **Variable Injection**: Global environment variables supported across URLs, Headers, and JSON Payloads using the `{{key}}` syntax.
-- **Adaptive UI**: The entire interface dynamically shifts its accent color based on the HTTP Protocol Verb (GET = Emerald, POST = Blue/Purple, PUT = Amber, etc.).
-- **cURL Transmuter**: Instantly convert standard cURL commands into workbench requests.
+🚀 **Live Preview:** [https://axiom-api.pages.dev/](https://axiom-api.pages.dev/)
 
 ---
 
-## 🛠 Tech Stack
+## ✨ Core Capabilities
 
-- **Framework**: React 19 (ESM)
-- **Styling**: Tailwind CSS
-- **Build Tool**: Vite
-- **PWA**: Custom Service Worker implementation
-- **Language**: TypeScript
+### ⚡ Mass Transmit Engine
+A high-performance bulk-transmission hub designed for stress-testing endpoints.
+- **Linear Mode**: Sequence-based testing using incremental counters.
+- **Chaotic Mode**: Randomized fuzz-testing to discover edge-case failures.
+- **Strategies**: Choose between "Sequential" (safe) and "Burst" (parallel) transmission.
 
----
+### 🏗️ Schema Architect
+Stop fighting JSON syntax errors. Use a visual builder to construct complex nested objects.
+- **Hydration**: Instantly convert any API response back into a visual architect template.
+- **Strict Typing**: Manage strings, numbers, booleans, and nulls with protocol-aware validation.
 
-## 🚀 Getting Started
+### 📈 Background Health Monitoring
+A persistent telemetry dashboard that stays active while you work.
+- **SVG Latency Graphs**: Real-time visualization of endpoint performance.
+- **Live Telemetry**: Automated pings that continue running in the background.
+- **Stats Wipe**: Intelligent state management that resets metrics when shifting targets.
 
-### Development
-
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Start the local engine:
-   ```bash
-   npm run dev
-   ```
-
-### Localhost API Testing
-
-To communicate with local APIs (e.g., C# / .NET) from the hosted environment, you must enable "Insecure Content" for the site to allow `HTTPS -> HTTP` local traffic:
-
-1. Click the **Lock Icon** 🔒 in your browser's address bar.
-2. Select **Site Settings**.
-3. Set **Insecure Content** to **Allow**.
-4. Use the **Guide** tab in the app for troubleshooting CORS and connection issues.
+### 🔐 Environment Management
+Manage variables across different deployment stages (Dev, Staging, Prod).
+- **Injection Engine**: Use `{{variable}}` syntax in URLs, headers, and payloads.
+- **Workspace Portability**: Export and import your entire workbench state as a JSON backup.
 
 ---
 
-## 📄 License
+## 🎨 Visual Philosophy
 
-MIT © [Axiom API Engineering]
+- **Protocol-Aware UI**: The interface dynamically shifts its primary accent color based on the HTTP Verb (GET = Emerald, POST = Blue, DELETE = Rose).
+- **Glassmorphism**: A deep, focused dark-mode aesthetic designed for long engineering sessions.
+- **Zero-Latency Interactions**: Optimized React components ensure the UI stays responsive even during high-volume data streams.
+
+---
+
+## 🚀 Local Development Testing
+
+To test local services (localhost) from the hosted Axiom Pro environment:
+
+1. Click the **Lock/Info Icon** 🔒 in your browser's address bar.
+2. Navigate to **Site Settings**.
+3. Set **Insecure Content** to **Allow** (this enables browser-to-localhost communication).
+4. Ensure your local server has **CORS** enabled for `*` or the Axiom domain.
+
+---
+
+## 🛠 Tech Specs
+
+- **Core**: React 19 + TypeScript
+- **Styling**: Tailwind CSS (JIT)
+- **Persistence**: Enhanced LocalStorage Hydration
+- **Architecture**: ESM-native with PWA Offline Support
+
+---
+
+📄 **License**: MIT © Axiom Engineering Team
