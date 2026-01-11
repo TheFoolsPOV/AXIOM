@@ -12,7 +12,7 @@ import DevAssistant from './components/DevAssistant';
 import UrlInput from './components/UrlInput';
 import MethodSelector from './components/MethodSelector';
 import WorkbenchPortability from './components/WorkbenchPortability';
-import MonitorTool from './components/BridgeTool'; 
+import MonitoringTool from './components/Monitoring'; 
 
 const MemoizedEditor = memo(Editor);
 const MemoizedResponseViewer = memo(ResponseViewer);
@@ -437,7 +437,7 @@ const App: React.FC = () => {
 
           {activeTab === 'monitor' && (
             <div className="h-full p-2 overflow-hidden animate-fade">
-              <MonitorTool 
+              <MonitoringTool 
                 accentColor={methodConfig.hex}
                 targetUrl={monitorUrl}
                 setTargetUrl={setMonitorUrl}

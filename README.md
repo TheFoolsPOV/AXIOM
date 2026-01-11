@@ -1,6 +1,6 @@
 # Axiom Pro | API Workbench
 
-**Axiom Pro** is a high-performance, browser-based API engineering environment designed for rapid prototyping, schema architecting, and batch transmission testing. 
+**Axiom Pro** is a high-performance, browser-based API engineering environment designed for rapid prototyping, schema architecting, and health monitoring.
 
 🚀 **Live App:** [https://axiom-api.pages.dev/](https://axiom-api.pages.dev/)
 
@@ -10,7 +10,7 @@
 
 - **Mass Transmit Engine**: A professional bulk-transmission hub for stress-testing endpoints with "Linear" or "Chaotic" sequence generation.
 - **Schema Architect**: A visual JSON builder that allows you to construct complex payloads without manual syntax errors.
-- **C# Connectivity Helper**: Purpose-built for .NET developers with integrated CORS diagnostic tools and Program.cs configuration snippets.
+- **Real-time Monitoring**: Integrated telemetry dashboard with SVG latency tracking, uptime calculation, and automated background health checks.
 - **PWA & Offline Ready**: Full service-worker support allows for engineering work even without an active internet connection.
 - **Variable Injection**: Global environment variables supported across URLs, Headers, and JSON Payloads using the `{{key}}` syntax.
 - **Adaptive UI**: The entire interface dynamically shifts its accent color based on the HTTP Protocol Verb (GET = Emerald, POST = Blue/Purple, PUT = Amber, etc.).
@@ -42,25 +42,14 @@
    npm run dev
    ```
 
-### Localhost C# Testing
+### Localhost API Testing
 
-To communicate with local `.NET` APIs from the hosted environment, you must enable "Insecure Content" for the site to allow `HTTPS -> HTTP` local traffic:
+To communicate with local APIs (e.g., C# / .NET) from the hosted environment, you must enable "Insecure Content" for the site to allow `HTTPS -> HTTP` local traffic:
 
 1. Click the **Lock Icon** 🔒 in your browser's address bar.
 2. Select **Site Settings**.
 3. Set **Insecure Content** to **Allow**.
-4. Use the **C# Helper** tab in the app for the required CORS middleware configuration.
-
----
-
-## 📦 Deployment
-
-This project is optimized for **Cloudflare Pages**. 
-
-1. Push your code to GitHub.
-2. Connect your repository to Cloudflare Pages.
-3. Use Build Command: `npm run build`
-4. Use Output Directory: `dist`
+4. Use the **Guide** tab in the app for troubleshooting CORS and connection issues.
 
 ---
 
