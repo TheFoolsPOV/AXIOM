@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { generateId } from '../types';
 
 interface CurlImporterProps {
   onImport: (data: { method: string; url: string; headers: any[]; body: string }) => void;
@@ -13,29 +14,20 @@ const CurlImporter: React.FC<CurlImporterProps> = ({ onImport, onClose, accentCo
   const handleImport = () => {
     try {
       const result: any = { method: 'GET', url: '', headers: [], body: '' };
-      
-      // Extract URL
       const urlMatch = curl.match(/curl\s+(?:--location\s+)?(?:"|')?([^"'\s]+)/);
       if (urlMatch) result.url = urlMatch[1];
-
-      // Extract Method
       const methodMatch = curl.match(/-X\s+(\w+)/) || curl.match(/--request\s+(\w+)/);
       if (methodMatch) result.method = methodMatch[1].toUpperCase();
       else if (curl.includes('--data') || curl.includes('-d')) result.method = 'POST';
-
-      // Extract Headers
       const headerMatches = [...curl.matchAll(/-H\s+(?:"|')([^"']+)("?|')/g)];
       result.headers = headerMatches.map(m => {
         const [key, ...valParts] = m[1].split(':');
-        return { id: crypto.randomUUID(), key: key.trim(), value: valParts.join(':').trim(), enabled: true };
+        return { id: generateId(), key: key.trim(), value: valParts.join(':').trim(), enabled: true };
       });
-
-      // Extract Body
       const bodyMatch = curl.match(/-d\s+(?:"|')([^"']+)("?|')/) || 
                         curl.match(/--data\s+(?:"|')([^"']+)("?|')/) ||
                         curl.match(/--data-raw\s+(?:"|')([^"']+)("?|')/);
       if (bodyMatch) result.body = bodyMatch[1];
-
       onImport(result);
       onClose();
     } catch (e) {

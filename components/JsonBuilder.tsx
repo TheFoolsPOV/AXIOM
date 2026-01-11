@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { KeyValuePair, Variable } from '../types';
+import { KeyValuePair, Variable, generateId } from '../types';
 
 interface JsonBuilderProps {
   fields: KeyValuePair[];
@@ -33,7 +33,6 @@ const VariableAwareInput: React.FC<{
         const key = part.slice(2, -2);
         const exists = variables.some(v => v.key === key);
         if (exists) {
-          // Key exists: Hide brackets, show in accent color with a distinct background for readability
           return (
             <span key={i} className="font-black px-1.5 rounded bg-white/10 border border-white/5 mx-0.5 inline-block leading-tight" style={{ color: accentColor }}>
               {key}
@@ -78,7 +77,7 @@ const JsonBuilder: React.FC<JsonBuilderProps> = ({ fields, setFields, variables,
 
   const addField = () => {
     onInteraction?.();
-    setFields([...fields, { id: crypto.randomUUID(), key: '', value: '', enabled: true, type: 'string' }]);
+    setFields([...fields, { id: generateId(), key: '', value: '', enabled: true, type: 'string' }]);
   };
 
   const removeField = (id: string) => {
@@ -160,7 +159,6 @@ const JsonBuilder: React.FC<JsonBuilderProps> = ({ fields, setFields, variables,
       <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar pb-10">
         {fields.map((f) => {
           const isCurrentField = suggestionState?.fieldId === f.id;
-          
           return (
             <div key={f.id} className="flex flex-col gap-2 bg-white/[0.01] p-3 rounded-xl border border-white/[0.04] hover:border-white/10 transition-all animate-reveal">
               <div className="flex gap-3 items-center">
@@ -211,7 +209,6 @@ const JsonBuilder: React.FC<JsonBuilderProps> = ({ fields, setFields, variables,
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
                 </button>
               </div>
-
               <div className="relative">
                 <VariableAwareInput
                   placeholder="Field Value"
@@ -224,7 +221,6 @@ const JsonBuilder: React.FC<JsonBuilderProps> = ({ fields, setFields, variables,
                   disabled={f.type === 'null'}
                   onBlur={() => setTimeout(() => setSuggestionState(null), 200)}
                 />
-                
                 {isCurrentField && suggestionState.fieldName === 'value' && filteredVars.length > 0 && (
                   <div className="absolute left-0 top-full mt-2 w-full z-[100] bg-[#11141b] border border-white/10 rounded-xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,1)] max-h-48 overflow-y-auto custom-scrollbar">
                     <div className="p-2 border-b border-white/5 bg-black/40">

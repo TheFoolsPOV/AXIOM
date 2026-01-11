@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { KeyValuePair } from '../types';
+import { KeyValuePair, generateId } from '../types';
 
 interface HeaderManagerProps {
   headers: KeyValuePair[];
@@ -10,7 +10,7 @@ interface HeaderManagerProps {
 
 const HeaderManager: React.FC<HeaderManagerProps> = ({ headers, setHeaders, accentColor }) => {
   const addHeader = () => {
-    setHeaders([...headers, { id: crypto.randomUUID(), key: '', value: '', enabled: true }]);
+    setHeaders([...headers, { id: generateId(), key: '', value: '', enabled: true }]);
   };
 
   const addAuth = () => {
@@ -19,7 +19,7 @@ const HeaderManager: React.FC<HeaderManagerProps> = ({ headers, setHeaders, acce
       alert("Authorization header already exists.");
       return;
     }
-    setHeaders([...headers, { id: crypto.randomUUID(), key: 'Authorization', value: 'Bearer ', enabled: true }]);
+    setHeaders([...headers, { id: generateId(), key: 'Authorization', value: 'Bearer ', enabled: true }]);
   };
 
   const removeHeader = (id: string) => {
