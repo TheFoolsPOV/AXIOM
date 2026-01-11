@@ -72,6 +72,31 @@ const App: React.FC = () => {
   const [globalAccent, setGlobalAccent] = useState('#3b82f6');
   const [storageReady, setStorageReady] = useState(false);
 
+  // SMART START ID: Scans response data first, then falls back to URL segments
+  const smartStartId = useMemo(() => {
+    // 1. Try to find the largest ID in the response data
+    if (response?.data) {
+      const data = response.data;
+      if (Array.isArray(data)) {
+        const ids = data
+          .map(item => parseInt(item?.id || item?.Id || item?.ID, 10))
+          .filter(id => !isNaN(id));
+        if (ids.length > 0) return Math.max(...ids);
+      } else if (typeof data === 'object') {
+        const id = parseInt(data?.id || data?.Id || data?.ID, 10);
+        if (!isNaN(id)) return id;
+      }
+    }
+
+    // 2. Fallback: Extract from URL segments
+    const segments = url.split('/');
+    for (let i = segments.length - 1; i >= 0; i--) {
+      const num = parseInt(segments[i], 10);
+      if (!isNaN(num)) return num;
+    }
+    return 0;
+  }, [url, response]);
+
   const methodConfig = useMemo(() => {
     const configs = {
       GET: { hex: '#10b981', text: 'text-emerald-400', label: 'Fetch' },
@@ -288,7 +313,18 @@ const App: React.FC = () => {
   return (
     <div className="flex h-screen overflow-hidden p-6 gap-6 bg-[#06080c]">
       {showBulk && (
-        <BulkTransmit url={url} method={method} headers={headers} variables={activeVariables} builderFields={builderFields} onClose={() => setShowBulk(false)} accentColor={methodConfig.hex} onModeChange={setGlobalAccent} />
+        <BulkTransmit 
+          url={url} 
+          method={method} 
+          headers={headers} 
+          variables={activeVariables} 
+          builderFields={builderFields} 
+          initialN={smartStartId}
+          onClose={() => setShowBulk(false)} 
+          accentColor={methodConfig.hex} 
+          onModeChange={setGlobalAccent} 
+          hasActiveResponse={!!response?.data}
+        />
       )}
       {showCurlImport && <CurlImporter onImport={(d) => {setMethod(d.method as any); setUrl(d.url); setHeaders(d.headers); setBody(d.body);}} onClose={() => setShowCurlImport(false)} accentColor={methodConfig.hex} />}
 

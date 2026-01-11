@@ -12,6 +12,7 @@ interface BulkTransmitProps {
   onClose: () => void;
   accentColor: string; 
   onModeChange: (color: string) => void;
+  hasActiveResponse?: boolean;
 }
 
 interface FieldPattern {
@@ -33,7 +34,8 @@ const BulkTransmit: React.FC<BulkTransmitProps> = ({
   initialN = 0, 
   onClose, 
   accentColor: globalAccentColor,
-  onModeChange
+  onModeChange,
+  hasActiveResponse = false
 }) => {
   const [targetUrl] = useState(initialUrl);
   const [targetMethod, setTargetMethod] = useState(initialMethod);
@@ -65,6 +67,12 @@ const BulkTransmit: React.FC<BulkTransmitProps> = ({
     if (type === 'number') return Math.floor(Math.random() * 100000);
     if (type === 'boolean') return Math.random() > 0.5;
     return Math.random().toString(36).substring(2, 9).toUpperCase();
+  };
+
+  const handleSmartSeed = () => {
+    // We already passed the smart initialN through props
+    setRangeStart(initialN + 1);
+    setRangeEnd(initialN + 10);
   };
 
   const generateBatch = useCallback(() => {
@@ -178,28 +186,45 @@ const BulkTransmit: React.FC<BulkTransmitProps> = ({
                   <div className="h-full animate-reveal overflow-y-auto custom-scrollbar">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-full">
                       <div className="lg:col-span-4 flex flex-col gap-4">
-                        <div className="glass-card p-6">
-                          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Parameters</h4>
+                        <div className="glass-card p-6 border-t border-white/5 shadow-xl">
+                          <div className="flex justify-between items-center mb-4">
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Batch Range</h4>
+                            <button 
+                              onClick={handleSmartSeed} 
+                              title={hasActiveResponse ? "Sync with Last Response Data" : "Seed from URL"} 
+                              className={`p-1.5 glass-card transition-all flex items-center gap-2 group ${hasActiveResponse ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20' : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'}`}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                              <span className="text-[8px] font-black uppercase hidden group-hover:inline-block">Sync Seed</span>
+                            </button>
+                          </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="text-[8px] font-black text-slate-700 uppercase tracking-widest block mb-1">Start</label>
+                              <label className="text-[8px] font-black text-slate-700 uppercase tracking-widest block mb-1">Starting ID</label>
                               <input type="number" value={rangeStart} onChange={e => setRangeStart(parseInt(e.target.value))} className="w-full bg-black/60 border border-white/10 rounded-lg p-3 text-white font-black outline-none focus:border-white/20" />
                             </div>
                             <div>
-                              <label className="text-[8px] font-black text-slate-700 uppercase tracking-widest block mb-1">End</label>
+                              <label className="text-[8px] font-black text-slate-700 uppercase tracking-widest block mb-1">Ending ID</label>
                               <input type="number" value={rangeEnd} onChange={e => setRangeEnd(parseInt(e.target.value))} className="w-full bg-black/60 border border-white/10 rounded-lg p-3 text-white font-black outline-none focus:border-white/20" />
+                            </div>
+                          </div>
+                          <div className="mt-6 p-4 bg-black/40 rounded-lg border border-white/5">
+                            <span className="text-[7px] font-black text-slate-600 uppercase tracking-widest block mb-1.5">Sequence Token</span>
+                            <div className="flex items-center gap-3">
+                              <code className="px-2 py-1 rounded bg-white/10 text-[10px] font-black text-emerald-400">{"{{n}}"}</code>
+                              <p className="text-[10px] text-slate-500 leading-tight">Injects the incrementing ID into your patterns below.</p>
                             </div>
                           </div>
                         </div>
                       </div>
                       <div className="lg:col-span-8 flex flex-col min-h-0">
-                        <div className="glass-card flex-1 p-6 flex flex-col">
+                        <div className="glass-card flex-1 p-6 flex flex-col border-t border-white/5 shadow-xl">
                           <div className="flex justify-between items-center mb-4">
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Property Matrix</h4>
                           </div>
                           <div className="flex-1 overflow-y-auto pr-3 custom-scrollbar space-y-3">
                             {fieldPatterns.map((fp, i) => (
-                              <div key={fp.id} className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center glass-card p-4">
+                              <div key={fp.id} className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center glass-card p-4 hover:border-white/10 transition-all">
                                 <div className="lg:col-span-4">
                                   <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest truncate block">{fp.key}</span>
                                 </div>
