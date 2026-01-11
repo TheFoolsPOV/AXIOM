@@ -1,9 +1,8 @@
-
 {
   "name": "Axiom Pro API Workbench",
   "short_name": "Axiom Pro",
   "description": "Professional API engineering environment.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#06080c",
   "theme_color": "#3b82f6",

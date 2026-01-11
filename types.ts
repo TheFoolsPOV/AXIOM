@@ -1,4 +1,3 @@
-
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
 export interface KeyValuePair {
@@ -35,22 +34,27 @@ export interface HistoryItem {
   timestamp: number;
 }
 
-export interface EnvironmentProfile {
+export interface Environment {
   id: string;
   name: string;
   variables: Variable[];
 }
 
-export type ActiveTab = 'request' | 'response' | 'debug';
+export interface PingResult {
+  id: string;
+  timestamp: number;
+  latency: number;
+  status: 'up' | 'down';
+  code: string;
+}
+
+export type ActiveTab = 'request' | 'response' | 'monitor' | 'debug';
 
 export interface Variable {
   key: string;
   value: string;
 }
 
-/**
- * Safe ID generator fallback for non-secure contexts (non-HTTPS)
- */
 export const generateId = (): string => {
   try {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
