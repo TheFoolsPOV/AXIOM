@@ -1,5 +1,5 @@
 {
-  "name": "Axiom Pro Workbench",
+  "name": "AXIOM API Workbench",
   "description": "Professional Universal API engineering environment with full offline PWA support, advanced schema architecting, and cross-platform environment management.",
   "requestFramePermissions": [],
   "offline_ready": true

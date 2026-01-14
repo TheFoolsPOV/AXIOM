@@ -241,7 +241,7 @@ const App: React.FC = () => {
           <div className="p-6">
              <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h1 className="text-sm font-black tracking-tighter text-white mb-0.5">AXIOM PRO</h1>
+                  <h1 className="text-sm font-black tracking-tighter text-white mb-0.5">AXIOM API</h1>
                   <p className="text-[7px] text-slate-500 font-black uppercase tracking-[0.4em]">Professional API Workbench</p>
                 </div>
                 <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-rose-500'} animate-pulse`}></div>

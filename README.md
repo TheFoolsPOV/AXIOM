@@ -1,6 +1,6 @@
-# Axiom Pro | Universal API Workbench
+# AXIOM API | Universal API Workbench
 
-**Axiom Pro** is a professional-grade API engineering and development environment built for high-velocity testing, schema architecting, and health monitoring. It bridges the gap between simple request tools and full-scale automated testing suites.
+**AXIOM API** is a professional-grade API engineering and development environment built for high-velocity testing, schema architecting, and health monitoring. It bridges the gap between simple request tools and full-scale automated testing suites.
 
 🚀 **Live Preview:** [https://axiom-api.pages.dev/](https://axiom-api.pages.dev/)
 
@@ -42,12 +42,12 @@ Manage variables across different deployment stages (Dev, Staging, Prod).
 
 ## 🚀 Local Development Testing
 
-To test local services (localhost) from the hosted Axiom Pro environment:
+To test local services (localhost) from the hosted AXIOM API environment:
 
 1. Click the **Lock/Info Icon** 🔒 in your browser's address bar.
 2. Navigate to **Site Settings**.
 3. Set **Insecure Content** to **Allow** (this enables browser-to-localhost communication).
-4. Ensure your local server has **CORS** enabled for `*` or the Axiom domain.
+4. Ensure your local server has **CORS** enabled for `*` or the AXIOM domain.
 
 ---
 
@@ -60,4 +60,4 @@ To test local services (localhost) from the hosted Axiom Pro environment:
 
 ---
 
-📄 **License**: MIT © Axiom Engineering Team
+📄 **License**: MIT © AXIOM Engineering Team

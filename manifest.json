@@ -1,6 +1,6 @@
 {
-  "name": "Axiom Pro API Workbench",
-  "short_name": "Axiom Pro",
+  "name": "AXIOM API Workbench",
+  "short_name": "AXIOM API",
   "description": "Professional API engineering environment.",
   "start_url": "/?source=pwa",
   "display": "standalone",
